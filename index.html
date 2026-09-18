@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs 家計簿 Pro - 月推移・詳細分析対応</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-brand-500 text-white p-2 rounded-xl shadow-md">
+          <i class="fa-solid fa-wallet text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold leading-tight text-slate-900">Docs 家計簿 Pro</h1>
+          <p class="text-xs text-slate-500">Google Docs Backend Engine</p>
+        </div>
+      </div>
+      <button id="btn-refresh" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="データを更新">
+        <i class="fa-solid fa-arrows-rotate text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-4xl mx-auto px-4 flex border-t border-slate-100">
+      <button id="tab-btn-main" onclick="switchTab('main')" class="py-2.5 px-4 text-sm font-semibold border-b-2 border-brand-600 text-brand-600 flex items-center gap-2">
+        <i class="fa-solid fa-list-check"></i> 明細管理・単月集計
+      </button>
+      <button id="tab-btn-analytics" onclick="switchTab('analytics')" class="py-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-chart-line"></i> 月推移分析（キーワード検索）
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
+
+    <!-- =================================================================== -->
+    <!-- TAB 1: 明細管理・単月集計メイン画面                                 -->
+    <!-- =================================================================== -->
+    <div id="tab-content-main" class="space-y-6">
+      
+      <!-- Monthly Summary Dashboard -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Total Balance -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の残高</span>
+          <div class="mt-2 flex items-baseline">
+            <span id="summary-balance" class="text-3xl font-extrabold text-slate-900">¥0</span>
+          </div>
+          <p class="mt-2 text-xs text-slate-500">※過去日入力も自動分類されます</p>
+        </div>
+
+        <!-- Monthly Income -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の収入</span>
+          <div class="mt-2 flex items-baseline">
+            <span id="summary-income" class="text-3xl font-extrabold text-emerald-600">¥0</span>
+          </div>
+          <p class="mt-2 text-xs text-emerald-600 font-medium"><i class="fa-solid fa-arrow-up mr-1"></i> プラス区分</p>
+        </div>
+
+        <!-- Monthly Expense -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の支出</span>
+          <div class="mt-2 flex items-baseline">
+            <span id="summary-expense" class="text-3xl font-extrabold text-rose-600">¥0</span>
+          </div>
+          <p class="mt-2 text-xs text-rose-600 font-medium"><i class="fa-solid fa-arrow-down mr-1"></i> マイナス区分</p>
+        </div>
+      </section>
+
+      <!-- Entry Form Panel -->
+      <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+          <h2 class="font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-brand-600"></i> 明細入力
+          </h2>
+          <!-- Target Month Selector -->
+          <div class="flex items-center gap-2">
+            <label for="filter-month" class="text-xs font-semibold text-slate-500">表示対象月:</label>
+            <input type="month" id="filter-month" class="bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+        </div>
+
+        <form id="tx-form" class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-4">
+          <!-- Date -->
+          <div class="md:col-span-3">
+            <label class="block text-xs font-medium text-slate-600 mb-1">日付（さかのぼり可）</label>
+            <input type="date" id="input-date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+
+          <!-- Type -->
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-slate-600 mb-1">区分</label>
+            <select id="input-type" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+              <option value="EXPENSE">支出 (-)</option>
+              <option value="INCOME">収入 (+)</option>
+            </select>
+          </div>
+
+          <!-- Category -->
+          <div class="md:col-span-3">
+            <label class="block text-xs font-medium text-slate-600 mb-1">費目</label>
+            <select id="input-category" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+              <!-- Dynamic Categories -->
+            </select>
+          </div>
+
+          <!-- Amount -->
+          <div class="md:col-span-4">
+            <label class="block text-xs font-medium text-slate-600 mb-1">金額 (円)</label>
+            <input type="number" id="input-amount" min="1" placeholder="1000" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+
+          <!-- Description / Memo -->
+          <div class="md:col-span-9">
+            <label class="block text-xs font-medium text-slate-600 mb-1">メモ / 内容（例: 米、ガソリン）</label>
+            <input type="text" id="input-desc" placeholder="スーパーで米を購入" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          </div>
+
+          <!-- Submit Button -->
+          <div class="md:col-span-3 flex items-end">
+            <button type="submit" id="btn-submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm">
+              <i class="fa-solid fa-plus"></i> 追加する
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- History Table -->
+      <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <h2 class="font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-list-ul text-slate-500"></i> 選択月の明細一覧
+          </h2>
+          <span id="record-count" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">0 件</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4">日付</th>
+                <th class="py-3 px-4">費目</th>
+                <th class="py-3 px-4">メモ / 内容</th>
+                <th class="py-3 px-4 text-right">金額</th>
+                <th class="py-3 px-4 text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tx-table-body" class="divide-y divide-slate-100 text-sm">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="empty-state" class="hidden p-8 text-center text-slate-400">
+          <i class="fa-regular fa-folder-open text-4xl mb-2"></i>
+          <p class="text-sm">選択された月のデータはありません。</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 2: 月推移分析画面 (キーワード＆費目追跡)                         -->
+    <!-- =================================================================== -->
+    <div id="tab-content-analytics" class="hidden space-y-6">
+      <section class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div>
+          <h2 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+            <i class="fa-solid fa-magnifying-glass-chart text-brand-600"></i> メモ・費目の月別推移検索
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">「米」「ガソリン」「食費」などのキーワードを入力すると、直近6ヶ月の支出推移を集計します。</p>
+        </div>
+
+        <div class="flex gap-2">
+          <input type="text" id="analytics-keyword" placeholder="検索キーワード（例: 米）" class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
+          <button onclick="renderAnalytics()" class="bg-slate-800 hover:bg-slate-900 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+            推移を分析
+          </button>
+        </div>
+      </section>
+
+      <!-- Analytics Result Card -->
+      <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 class="font-bold text-slate-700 text-sm">
+            検索対象: <span id="analytics-target-label" class="text-brand-600">未指定</span>
+          </h3>
+          <span id="analytics-total-6m" class="text-xs font-semibold bg-brand-50 text-brand-700 px-3 py-1 rounded-full">6ヶ月合計: ¥0</span>
+        </div>
+
+        <!-- Monthly Trend Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500">
+                <th class="py-2.5 px-4">年月</th>
+                <th class="py-2.5 px-4 text-center">件数</th>
+                <th class="py-2.5 px-4 text-right">月間合計額</th>
+                <th class="py-2.5 px-4">簡易グラフ</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-table-body" class="divide-y divide-slate-100 text-sm">
+              <!-- Dynamic Analytics Rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Global Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
+    <div class="bg-white p-5 rounded-2xl shadow-xl flex items-center space-x-4">
+      <div class="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+      <span class="text-sm font-semibold text-slate-700">通信中...</span>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Logic Script -->
+  <script>
+    // =========================================================================
+    // 設定＆定数
+    // =========================================================================
+    // TODO: ここにデプロイしたGAS WebアプリのURLを設定してください
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz16YOOKM90NOTxZEFxD6lybVJPXw9Ngn0iisCrvfYvJFJm4EkB2Yd24m_DDOcTjw8BLQ/exec';
+
+    const CATEGORIES = {
+      EXPENSE: ['食費', '日用品', '住居・光熱費', '交際費', '交通費', '趣味・教養', 'その他支出'],
+      INCOME: ['給料', '副収入', '臨時収入', 'その他収入']
+    };
+
+    // =========================================================================
+    // Utility Functions
+    // =========================================================================
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const bgColor = type === 'success' ? 'bg-slate-800 text-white' : 'bg-rose-600 text-white';
+      const icon = type === 'success' ? 'fa-circle-check text-emerald-400' : 'fa-triangle-exclamation text-amber-300';
+
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm transition-all duration-300 opacity-0 translate-y-2 ${bgColor}`;
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHTML(message)}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-2'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // =========================================================================
+    // API Client
+    // =========================================================================
+    class ApiClient {
+      static async fetchAll() {
+        const response = await fetch(GAS_API_URL, { method: 'GET' });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const res = await response.json();
+        if (res.status !== 'success') throw new Error(res.message);
+        return res.data;
+      }
+
+      static async createTransaction(transaction) {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'CREATE', transaction })
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const res = await response.json();
+        if (res.status !== 'success') throw new Error(res.message);
+        return res.data;
+      }
+
+      static async deleteTransaction(id) {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'DELETE', id })
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const res = await response.json();
+        if (res.status !== 'success') throw new Error(res.message);
+        return res.data;
+      }
+    }
+
+    // =========================================================================
+    // Application Store
+    // =========================================================================
+    class AppStore {
+      constructor() {
+        this.state = {
+          transactions: [],
+          selectedMonth: new Date().toISOString().substring(0, 7),
+          activeTab: 'main'
+        };
+        this.listeners = [];
+      }
+
+      subscribe(listener) { this.listeners.push(listener); }
+      notify() { this.listeners.forEach(fn => fn(this.state)); }
+
+      setLoading(loading) {
+        const overlay = document.getElementById('loading-overlay');
+        loading ? overlay.classList.remove('hidden') : overlay.classList.add('hidden');
+      }
+
+      setSelectedMonth(monthStr) {
+        this.state.selectedMonth = monthStr;
+        this.notify();
+      }
+
+      setTransactions(transactions) {
+        this.state.transactions = transactions;
+        this.notify();
+      }
+
+      getFilteredTransactions() {
+        return this.state.transactions.filter(tx => tx.date.startsWith(this.state.selectedMonth));
+      }
+
+      calculateMonthlySummary() {
+        const filtered = this.getFilteredTransactions();
+        let income = 0, expense = 0;
+        filtered.forEach(tx => {
+          if (tx.amount > 0) income += tx.amount;
+          else expense += Math.abs(tx.amount);
+        });
+        return { income, expense, balance: income - expense };
+      }
+
+      // Keyword Monthly Trend Logic
+      getKeywordTrend(keyword, monthsCount = 6) {
+        if (!keyword || !keyword.trim()) return [];
+        const normKey = keyword.trim().toLowerCase();
+        const targetMonths = [];
+        const now = new Date();
+
+        for (let i = monthsCount - 1; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          targetMonths.push(d.toISOString().substring(0, 7));
+        }
+
+        return targetMonths.map(month => {
+          const matched = this.state.transactions.filter(tx => {
+            const isSameMonth = tx.date.startsWith(month);
+            const matchDesc = tx.description && tx.description.toLowerCase().includes(normKey);
+            const matchCat = tx.category && tx.category.toLowerCase().includes(normKey);
+            return isSameMonth && (matchDesc || matchCat);
+          });
+
+          const total = matched.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+          return { month, total, count: matched.length };
+        });
+      }
+    }
+
+    const store = new AppStore();
+
+    // =========================================================================
+    // UI Renderers & Event Handlers
+    // =========================================================================
+    function switchTab(tabName) {
+      store.state.activeTab = tabName;
+      const mainContent = document.getElementById('tab-content-main');
+      const analyticsContent = document.getElementById('tab-content-analytics');
+      const btnMain = document.getElementById('tab-btn-main');
+      const btnAnalytics = document.getElementById('tab-btn-analytics');
+
+      if (tabName === 'main') {
+        mainContent.classList.remove('hidden');
+        analyticsContent.classList.add('hidden');
+        btnMain.className = "py-2.5 px-4 text-sm font-semibold border-b-2 border-brand-600 text-brand-600 flex items-center gap-2";
+        btnAnalytics.className = "py-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+      } else {
+        mainContent.classList.add('hidden');
+        analyticsContent.classList.remove('hidden');
+        btnAnalytics.className = "py-2.5 px-4 text-sm font-semibold border-b-2 border-brand-600 text-brand-600 flex items-center gap-2";
+        btnMain.className = "py-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2";
+        renderAnalytics();
+      }
+    }
+
+    function updateCategoryDropdown() {
+      const type = document.getElementById('input-type').value;
+      const categorySelect = document.getElementById('input-category');
+      categorySelect.innerHTML = '';
+      const list = type === 'EXPENSE' ? CATEGORIES.EXPENSE : CATEGORIES.INCOME;
+      list.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+    }
+
+    function renderUI(state) {
+      // 1. Summary
+      const summary = store.calculateMonthlySummary();
+      document.getElementById('summary-balance').textContent = formatCurrency(summary.balance);
+      document.getElementById('summary-income').textContent = formatCurrency(summary.income);
+      document.getElementById('summary-expense').textContent = formatCurrency(summary.expense);
+
+      // 2. Table
+      const filteredTxs = store.getFilteredTransactions();
+      const tbody = document.getElementById('tx-table-body');
+      const emptyState = document.getElementById('empty-state');
+      document.getElementById('record-count').textContent = `${filteredTxs.length} 件`;
+
+      tbody.innerHTML = '';
+      if (filteredTxs.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      filteredTxs.forEach(tx => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 transition-colors';
+        const isIncome = tx.amount > 0;
+        const amountClass = isIncome ? 'text-emerald-600 font-bold' : 'text-slate-800 font-semibold';
+        const formattedAmount = (isIncome ? '+' : '') + formatCurrency(tx.amount);
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 text-slate-600 whitespace-nowrap">${escapeHTML(tx.date)}</td>
+          <td class="py-3 px-4">
+            <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-md font-medium">
+              ${escapeHTML(tx.category)}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-slate-600 max-w-xs truncate">${escapeHTML(tx.description || '-')}</td>
+          <td class="py-3 px-4 text-right ${amountClass} whitespace-nowrap">${formattedAmount}</td>
+          <td class="py-3 px-4 text-center whitespace-nowrap">
+            <button onclick="handleDeleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded transition" title="削除">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAnalytics() {
+      const keyword = document.getElementById('analytics-keyword').value || '米';
+      const trend = store.getKeywordTrend(keyword, 6);
+      
+      document.getElementById('analytics-target-label').textContent = `「${escapeHTML(keyword)}」`;
+      
+      const totalSum = trend.reduce((sum, item) => sum + item.total, 0);
+      document.getElementById('analytics-total-6m').textContent = `6ヶ月合計: ${formatCurrency(totalSum)}`;
+
+      const maxVal = Math.max(...trend.map(t => t.total), 1);
+      const tbody = document.getElementById('analytics-table-body');
+      tbody.innerHTML = '';
+
+      trend.forEach(item => {
+        const tr = document.createElement('tr');
+        const barWidth = Math.round((item.total / maxVal) * 100);
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-700">${item.month}</td>
+          <td class="py-3 px-4 text-center text-slate-500 text-xs">${item.count} 件</td>
+          <td class="py-3 px-4 text-right font-bold text-slate-800">${formatCurrency(item.total)}</td>
+          <td class="py-3 px-4 w-1/3">
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+              <div class="bg-brand-500 h-full rounded-full transition-all duration-500" style="width: ${barWidth}%"></div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadData() {
+      store.setLoading(true);
+      try {
+        const data = await ApiClient.fetchAll();
+        store.setTransactions(data.transactions || []);
+        showToast('最新データをロードしました', 'success');
+      } catch (err) {
+        showToast('取得失敗: ' + err.message, 'error');
+      } finally {
+        store.setLoading(false);
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('input-date').value;
+      const type = document.getElementById('input-type').value;
+      const category = document.getElementById('input-category').value;
+      const rawAmount = parseFloat(document.getElementById('input-amount').value);
+      const desc = document.getElementById('input-desc').value;
+
+      if (!date || isNaN(rawAmount) || rawAmount <= 0) {
+        showToast('正しい日付と金額を入力してください', 'error');
+        return;
+      }
+
+      const finalAmount = type === 'EXPENSE' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
+      const newTx = {
+        id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        date,
+        category,
+        description: desc,
+        amount: finalAmount,
+        createdAt: new Date().toISOString()
+      };
+
+      store.setLoading(true);
+      try {
+        const updatedData = await ApiClient.createTransaction(newTx);
+        store.setTransactions(updatedData.transactions);
+        document.getElementById('input-amount').value = '';
+        document.getElementById('input-desc').value = '';
+        showToast('明細を追加しました（過去月も自動集計されます）', 'success');
+      } catch (err) {
+        showToast('追加失敗: ' + err.message, 'error');
+      } finally {
+        store.setLoading(false);
+      }
+    }
+
+    async function handleDeleteTransaction(id) {
+      if (!confirm('この明細を削除しますか？')) return;
+      store.setLoading(true);
+      try {
+        const updatedData = await ApiClient.deleteTransaction(id);
+        store.setTransactions(updatedData.transactions);
+        showToast('明細を削除しました', 'success');
+      } catch (err) {
+        showToast('削除失敗: ' + err.message, 'error');
+      } finally {
+        store.setLoading(false);
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().substring(0, 10);
+      const currentMonth = today.substring(0, 7);
+
+      document.getElementById('input-date').value = today;
+      document.getElementById('filter-month').value = currentMonth;
+      store.setSelectedMonth(currentMonth);
+
+      document.getElementById('input-type').addEventListener('change', updateCategoryDropdown);
+      document.getElementById('filter-month').addEventListener('change', (e) => store.setSelectedMonth(e.target.value));
+      document.getElementById('btn-refresh').addEventListener('click', loadData);
+      document.getElementById('tx-form').addEventListener('submit', handleFormSubmit);
+
+      store.subscribe(renderUI);
+      updateCategoryDropdown();
+
+      if (GAS_API_URL === 'YOUR_GAS_WEB_APP_URL_HERE') {
+        showToast('GASのWebアプリURLが設定されていません', 'error');
+      } else {
+        loadData();
+      }
+    });
+  </script>
+</body>
+</html>
