@@ -358,7 +358,10 @@
       }
 
       getFilteredTransactions() {
-        return this.state.transactions.filter(tx => tx.date.startsWith(this.state.selectedMonth));
+        // 日付順（昇順: 古い日 -> 新しい日）にソートして返却
+        return this.state.transactions
+          .filter(tx => tx.date.startsWith(this.state.selectedMonth))
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
       }
 
       calculateMonthlySummary() {
