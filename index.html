@@ -59,14 +59,11 @@
   <!-- Main Container -->
   <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
 
-    <!-- =================================================================== -->
-    <!-- TAB 1: 明細管理・単月集計メイン画面                                 -->
-    <!-- =================================================================== -->
+    <!-- TAB 1: 明細管理・単月集計メイン画面 -->
     <div id="tab-content-main" class="space-y-6">
       
       <!-- Monthly Summary Dashboard -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Total Balance -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の残高</span>
           <div class="mt-2 flex items-baseline">
@@ -75,7 +72,6 @@
           <p class="mt-2 text-xs text-slate-500">※過去日入力も自動分類されます</p>
         </div>
 
-        <!-- Monthly Income -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の収入</span>
           <div class="mt-2 flex items-baseline">
@@ -84,7 +80,6 @@
           <p class="mt-2 text-xs text-emerald-600 font-medium"><i class="fa-solid fa-arrow-up mr-1"></i> プラス区分</p>
         </div>
 
-        <!-- Monthly Expense -->
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">選択月の支出</span>
           <div class="mt-2 flex items-baseline">
@@ -100,7 +95,6 @@
           <h2 class="font-bold text-slate-800 flex items-center gap-2">
             <i class="fa-solid fa-pen-to-square text-brand-600"></i> 明細入力
           </h2>
-          <!-- Target Month Selector -->
           <div class="flex items-center gap-2">
             <label for="filter-month" class="text-xs font-semibold text-slate-500">表示対象月:</label>
             <input type="month" id="filter-month" class="bg-white border border-slate-300 rounded-lg px-3 py-1 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -108,13 +102,11 @@
         </div>
 
         <form id="tx-form" class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-4">
-          <!-- Date -->
           <div class="md:col-span-3">
             <label class="block text-xs font-medium text-slate-600 mb-1">日付（さかのぼり可）</label>
             <input type="date" id="input-date" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
           </div>
 
-          <!-- Type -->
           <div class="md:col-span-2">
             <label class="block text-xs font-medium text-slate-600 mb-1">区分</label>
             <select id="input-type" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
@@ -123,27 +115,22 @@
             </select>
           </div>
 
-          <!-- Category -->
           <div class="md:col-span-3">
             <label class="block text-xs font-medium text-slate-600 mb-1">費目</label>
             <select id="input-category" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
-              <!-- Dynamic Categories -->
             </select>
           </div>
 
-          <!-- Amount -->
           <div class="md:col-span-4">
             <label class="block text-xs font-medium text-slate-600 mb-1">金額 (円)</label>
             <input type="number" id="input-amount" min="1" placeholder="1000" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
           </div>
 
-          <!-- Description / Memo -->
           <div class="md:col-span-9">
             <label class="block text-xs font-medium text-slate-600 mb-1">メモ / 内容（例: 米、ガソリン）</label>
             <input type="text" id="input-desc" placeholder="スーパーで米を購入" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
           </div>
 
-          <!-- Submit Button -->
           <div class="md:col-span-3 flex items-end">
             <button type="submit" id="btn-submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm">
               <i class="fa-solid fa-plus"></i> 追加する
@@ -154,17 +141,30 @@
 
       <!-- History Table -->
       <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-          <h2 class="font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-list-ul text-slate-500"></i> 選択月の明細一覧
-          </h2>
-          <span id="record-count" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">0 件</span>
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-3">
+            <h2 class="font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-list-ul text-slate-500"></i> 選択月の明細一覧
+            </h2>
+            <span id="record-count" class="text-xs bg-slate-100 text-slate-600 font-semibold px-2.5 py-1 rounded-full">0 件</span>
+          </div>
+
+          <!-- 一括アクションエリア -->
+          <div id="bulk-action-area" class="hidden flex items-center gap-2">
+            <button onclick="handleBulkCopyTransactionsToNextMonth()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition shadow-sm flex items-center gap-1.5">
+              <i class="fa-solid fa-copy"></i>
+              <span>選択した<span id="selected-count">0</span>件を翌月にコピー</span>
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4 text-center w-10">
+                  <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+                </th>
                 <th class="py-3 px-4">日付</th>
                 <th class="py-3 px-4">費目</th>
                 <th class="py-3 px-4">メモ / 内容</th>
@@ -173,7 +173,6 @@
               </tr>
             </thead>
             <tbody id="tx-table-body" class="divide-y divide-slate-100 text-sm">
-              <!-- Dynamic Rows -->
             </tbody>
           </table>
         </div>
@@ -186,9 +185,7 @@
 
     </div>
 
-    <!-- =================================================================== -->
-    <!-- TAB 2: 月推移分析画面 (キーワード＆費目追跡)                         -->
-    <!-- =================================================================== -->
+    <!-- TAB 2: 月推移分析画面 -->
     <div id="tab-content-analytics" class="hidden space-y-6">
       <section class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div>
@@ -206,7 +203,6 @@
         </div>
       </section>
 
-      <!-- Analytics Result Card -->
       <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-5 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 class="font-bold text-slate-700 text-sm">
@@ -215,7 +211,6 @@
           <span id="analytics-total-6m" class="text-xs font-semibold bg-brand-50 text-brand-700 px-3 py-1 rounded-full">6ヶ月合計: ¥0</span>
         </div>
 
-        <!-- Monthly Trend Table -->
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
@@ -227,7 +222,6 @@
               </tr>
             </thead>
             <tbody id="analytics-table-body" class="divide-y divide-slate-100 text-sm">
-              <!-- Dynamic Analytics Rows -->
             </tbody>
           </table>
         </div>
@@ -240,7 +234,7 @@
   <div id="loading-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex flex-col items-center justify-center hidden">
     <div class="bg-white p-5 rounded-2xl shadow-xl flex items-center space-x-4">
       <div class="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-      <span class="text-sm font-semibold text-slate-700">通信中...</span>
+      <span class="text-sm font-semibold text-slate-700" id="loading-text">通信中...</span>
     </div>
   </div>
 
@@ -249,10 +243,6 @@
 
   <!-- Logic Script -->
   <script>
-    // =========================================================================
-    // 設定＆定数
-    // =========================================================================
-    // TODO: ここにデプロイしたGAS WebアプリのURLを設定してください
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz16YOOKM90NOTxZEFxD6lybVJPXw9Ngn0iisCrvfYvJFJm4EkB2Yd24m_DDOcTjw8BLQ/exec';
 
     const CATEGORIES = {
@@ -260,9 +250,9 @@
       INCOME: ['給料', '副収入', '臨時収入', 'その他収入']
     };
 
-    // =========================================================================
-    // Utility Functions
-    // =========================================================================
+    // 選択されている明細IDのSet
+    const selectedTxIds = new Set();
+
     function escapeHTML(str) {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -270,6 +260,21 @@
 
     function formatCurrency(amount) {
       return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' }).format(amount);
+    }
+
+    // 翌月の同日の日付(YYYY-MM-DD)を計算する関数（月違いのオーバーフロー補正対応）
+    function getNextMonthDate(dateStr) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const targetYear = month === 12 ? year + 1 : year;
+      const targetMonth = month === 12 ? 0 : month; 
+
+      const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+      const targetDay = Math.min(day, lastDayOfTargetMonth);
+
+      const y = targetYear;
+      const m = String(targetMonth + 1).padStart(2, '0');
+      const d = String(targetDay).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
 
     function showToast(message, type = 'success') {
@@ -289,9 +294,6 @@
       }, 4000);
     }
 
-    // =========================================================================
-    // API Client
-    // =========================================================================
     class ApiClient {
       static async fetchAll() {
         const response = await fetch(GAS_API_URL, { method: 'GET' });
@@ -326,9 +328,6 @@
       }
     }
 
-    // =========================================================================
-    // Application Store
-    // =========================================================================
     class AppStore {
       constructor() {
         this.state = {
@@ -342,13 +341,16 @@
       subscribe(listener) { this.listeners.push(listener); }
       notify() { this.listeners.forEach(fn => fn(this.state)); }
 
-      setLoading(loading) {
+      setLoading(loading, message = '通信中...') {
         const overlay = document.getElementById('loading-overlay');
+        const textNode = document.getElementById('loading-text');
+        if (textNode) textNode.textContent = message;
         loading ? overlay.classList.remove('hidden') : overlay.classList.add('hidden');
       }
 
       setSelectedMonth(monthStr) {
         this.state.selectedMonth = monthStr;
+        selectedTxIds.clear(); // 月を切り替えたら選択解除
         this.notify();
       }
 
@@ -358,7 +360,6 @@
       }
 
       getFilteredTransactions() {
-        // 日付順（昇順: 古い日 -> 新しい日）にソートして返却
         return this.state.transactions
           .filter(tx => tx.date.startsWith(this.state.selectedMonth))
           .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -374,7 +375,6 @@
         return { income, expense, balance: income - expense };
       }
 
-      // Keyword Monthly Trend Logic
       getKeywordTrend(keyword, monthsCount = 6) {
         if (!keyword || !keyword.trim()) return [];
         const normKey = keyword.trim().toLowerCase();
@@ -402,9 +402,6 @@
 
     const store = new AppStore();
 
-    // =========================================================================
-    // UI Renderers & Event Handlers
-    // =========================================================================
     function switchTab(tabName) {
       store.state.activeTab = tabName;
       const mainContent = document.getElementById('tab-content-main');
@@ -439,14 +436,57 @@
       });
     }
 
+    // チェックボックスの選択状態を更新する
+    function updateBulkActionUI() {
+      const bulkArea = document.getElementById('bulk-action-area');
+      const selectedCountLabel = document.getElementById('selected-count');
+      const selectAllCheckbox = document.getElementById('select-all-checkbox');
+      const filteredTxs = store.getFilteredTransactions();
+
+      if (selectedTxIds.size > 0) {
+        bulkArea.classList.remove('hidden');
+        selectedCountLabel.textContent = selectedTxIds.size;
+      } else {
+        bulkArea.classList.add('hidden');
+      }
+
+      if (filteredTxs.length > 0 && selectedTxIds.size === filteredTxs.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else if (selectedTxIds.size > 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      }
+    }
+
+    function toggleSelectAll(masterCheckbox) {
+      const filteredTxs = store.getFilteredTransactions();
+      if (masterCheckbox.checked) {
+        filteredTxs.forEach(tx => selectedTxIds.add(tx.id));
+      } else {
+        selectedTxIds.clear();
+      }
+      renderUI(store.state);
+    }
+
+    function toggleSelectTx(id) {
+      if (selectedTxIds.has(id)) {
+        selectedTxIds.delete(id);
+      } else {
+        selectedTxIds.add(id);
+      }
+      updateBulkActionUI();
+    }
+
     function renderUI(state) {
-      // 1. Summary
       const summary = store.calculateMonthlySummary();
       document.getElementById('summary-balance').textContent = formatCurrency(summary.balance);
       document.getElementById('summary-income').textContent = formatCurrency(summary.income);
       document.getElementById('summary-expense').textContent = formatCurrency(summary.expense);
 
-      // 2. Table
       const filteredTxs = store.getFilteredTransactions();
       const tbody = document.getElementById('tx-table-body');
       const emptyState = document.getElementById('empty-state');
@@ -455,6 +495,7 @@
       tbody.innerHTML = '';
       if (filteredTxs.length === 0) {
         emptyState.classList.remove('hidden');
+        updateBulkActionUI();
         return;
       }
       emptyState.classList.add('hidden');
@@ -465,8 +506,12 @@
         const isIncome = tx.amount > 0;
         const amountClass = isIncome ? 'text-emerald-600 font-bold' : 'text-slate-800 font-semibold';
         const formattedAmount = (isIncome ? '+' : '') + formatCurrency(tx.amount);
+        const isChecked = selectedTxIds.has(tx.id);
 
         tr.innerHTML = `
+          <td class="py-3 px-4 text-center">
+            <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleSelectTx('${tx.id}')" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+          </td>
           <td class="py-3 px-4 text-slate-600 whitespace-nowrap">${escapeHTML(tx.date)}</td>
           <td class="py-3 px-4">
             <span class="inline-block bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-md font-medium">
@@ -475,14 +520,19 @@
           </td>
           <td class="py-3 px-4 text-slate-600 max-w-xs truncate">${escapeHTML(tx.description || '-')}</td>
           <td class="py-3 px-4 text-right ${amountClass} whitespace-nowrap">${formattedAmount}</td>
-          <td class="py-3 px-4 text-center whitespace-nowrap">
-            <button onclick="handleDeleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded transition" title="削除">
+          <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-1">
+            <button onclick="handleCopyTransactionToNextMonth('${tx.id}')" class="text-slate-400 hover:text-brand-600 p-1.5 rounded transition" title="翌月の同日にコピー">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+            <button onclick="handleDeleteTransaction('${tx.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded transition" title="削除">
               <i class="fa-regular fa-trash-can"></i>
             </button>
           </td>
         `;
         tbody.appendChild(tr);
       });
+
+      updateBulkActionUI();
     }
 
     function renderAnalytics() {
@@ -517,7 +567,7 @@
     }
 
     async function loadData() {
-      store.setLoading(true);
+      store.setLoading(true, '最新データをロード中...');
       try {
         const data = await ApiClient.fetchAll();
         store.setTransactions(data.transactions || []);
@@ -552,13 +602,13 @@
         createdAt: new Date().toISOString()
       };
 
-      store.setLoading(true);
+      store.setLoading(true, '明細を追加中...');
       try {
         const updatedData = await ApiClient.createTransaction(newTx);
         store.setTransactions(updatedData.transactions);
         document.getElementById('input-amount').value = '';
         document.getElementById('input-desc').value = '';
-        showToast('明細を追加しました（過去月も自動集計されます）', 'success');
+        showToast('明細を追加しました', 'success');
       } catch (err) {
         showToast('追加失敗: ' + err.message, 'error');
       } finally {
@@ -566,11 +616,103 @@
       }
     }
 
+    // 単体コピー処理
+    async function handleCopyTransactionToNextMonth(id) {
+      const targetTx = store.state.transactions.find(tx => tx.id === id);
+      if (!targetTx) return;
+
+      const nextDate = getNextMonthDate(targetTx.date);
+      const confirmMsg = `「${targetTx.description || targetTx.category}」の明細を翌月 (${nextDate}) にコピーしますか？`;
+
+      if (!confirm(confirmMsg)) return;
+
+      const newTx = {
+        id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        date: nextDate,
+        category: targetTx.category,
+        description: targetTx.description,
+        amount: targetTx.amount,
+        createdAt: new Date().toISOString()
+      };
+
+      store.setLoading(true, '翌月へコピー中...');
+      try {
+        const updatedData = await ApiClient.createTransaction(newTx);
+        store.state.transactions = updatedData.transactions;
+        
+        // ユーザーをコピー先の月に自動移動
+        const nextMonth = nextDate.substring(0, 7);
+        document.getElementById('filter-month').value = nextMonth;
+        store.setSelectedMonth(nextMonth);
+
+        showToast(`翌月 (${nextDate}) に明細をコピーしました`, 'success');
+      } catch (err) {
+        showToast('コピー失敗: ' + err.message, 'error');
+      } finally {
+        store.setLoading(false);
+      }
+    }
+
+    // ★ 一括コピー処理
+    async function handleBulkCopyTransactionsToNextMonth() {
+      const selectedIds = Array.from(selectedTxIds);
+      if (selectedIds.length === 0) return;
+
+      const targets = store.state.transactions.filter(tx => selectedIds.includes(tx.id));
+      if (targets.length === 0) return;
+
+      if (!confirm(`選択された ${targets.length} 件の明細をそれぞれ翌月の同日にコピーしますか？`)) return;
+
+      store.setLoading(true, `一括コピー処理中 (0/${targets.length})...`);
+
+      let latestTransactions = store.state.transactions;
+      let targetNextMonth = '';
+
+      try {
+        for (let i = 0; i < targets.length; i++) {
+          const targetTx = targets[i];
+          const nextDate = getNextMonthDate(targetTx.date);
+          targetNextMonth = nextDate.substring(0, 7);
+
+          const newTx = {
+            id: `tx_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}`,
+            date: nextDate,
+            category: targetTx.category,
+            description: targetTx.description,
+            amount: targetTx.amount,
+            createdAt: new Date().toISOString()
+          };
+
+          store.setLoading(true, `一括コピー処理中 (${i + 1}/${targets.length})...`);
+          const updatedData = await ApiClient.createTransaction(newTx);
+          latestTransactions = updatedData.transactions;
+        }
+
+        store.state.transactions = latestTransactions;
+        selectedTxIds.clear();
+
+        // 最後のコピー先月へ画面切り替え
+        if (targetNextMonth) {
+          document.getElementById('filter-month').value = targetNextMonth;
+          store.setSelectedMonth(targetNextMonth);
+        } else {
+          store.notify();
+        }
+
+        showToast(`${targets.length} 件の明細を翌月に一括コピーしました`, 'success');
+      } catch (err) {
+        showToast('一括コピー中にエラーが発生しました: ' + err.message, 'error');
+      } finally {
+        store.setLoading(false);
+      }
+    }
+
     async function handleDeleteTransaction(id) {
       if (!confirm('この明細を削除しますか？')) return;
-      store.setLoading(true);
+      store.setLoading(true, '削除中...');
       try {
         const updatedData = await ApiClient.deleteTransaction(id);
+        selectedTxIds.delete(id);
         store.setTransactions(updatedData.transactions);
         showToast('明細を削除しました', 'success');
       } catch (err) {
