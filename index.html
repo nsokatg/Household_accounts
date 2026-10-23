@@ -131,9 +131,12 @@
             <input type="text" id="input-desc" placeholder="スーパーで米を購入" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none">
           </div>
 
-          <div class="md:col-span-3 flex items-end">
+          <div class="md:col-span-3 flex flex-col justify-end gap-2">
             <button type="submit" id="btn-submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center gap-2 text-sm">
               <i class="fa-solid fa-plus"></i> 追加する
+            </button>
+            <button type="button" id="btn-cancel-edit" onclick="cancelEdit()" class="hidden w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition text-sm">
+              編集をキャンセル
             </button>
           </div>
         </form>
@@ -243,7 +246,7 @@
 
   <!-- Logic Script -->
   <script>
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz16YOOKM90NOTxZEFxD6lybVJPXw9Ngn0iisCrvfYvJFJm4EkB2Yd24m_DDOcTjw8BLQ/exec';
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbx1ubaEBUQ9hrHHf5jGen1AefkPvOwzY54Pv0XGTsqMCpSNKW9WsS7mGq_IvGNVPYlKqQ/exec';
 
     const CATEGORIES = {
       EXPENSE: ['食費', '日用品', '住居・光熱費', '交際費', '交通費', '趣味・教養', 'その他支出'],
@@ -252,6 +255,8 @@
 
     // 選択されている明細IDのSet
     const selectedTxIds = new Set();
+    // 編集中の明細ID。nullの場合は新規登録モード。
+    let editingTransactionId = null;
 
     function escapeHTML(str) {
       if (!str) return '';
@@ -308,6 +313,18 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'CREATE', transaction })
+        });
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+        const res = await response.json();
+        if (res.status !== 'success') throw new Error(res.message);
+        return res.data;
+      }
+
+      static async updateTransaction(transaction) {
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'UPDATE', transaction })
         });
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const res = await response.json();
@@ -521,6 +538,9 @@
           <td class="py-3 px-4 text-slate-600 max-w-xs truncate">${escapeHTML(tx.description || '-')}</td>
           <td class="py-3 px-4 text-right ${amountClass} whitespace-nowrap">${formattedAmount}</td>
           <td class="py-3 px-4 text-center whitespace-nowrap flex items-center justify-center gap-1">
+            <button onclick="beginEdit('${tx.id}')" class="text-slate-400 hover:text-amber-600 p-1.5 rounded transition" title="この明細を編集">
+              <i class="fa-solid fa-pen"></i>
+            </button>
             <button onclick="handleCopyTransactionToNextMonth('${tx.id}')" class="text-slate-400 hover:text-brand-600 p-1.5 rounded transition" title="翌月の同日にコピー">
               <i class="fa-solid fa-copy"></i>
             </button>
@@ -579,38 +599,90 @@
       }
     }
 
+    function setFormMode(isEditing) {
+      const submitButton = document.getElementById('btn-submit');
+      const cancelButton = document.getElementById('btn-cancel-edit');
+      if (isEditing) {
+        submitButton.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 変更を保存';
+        submitButton.classList.remove('bg-brand-600', 'hover:bg-brand-700');
+        submitButton.classList.add('bg-amber-600', 'hover:bg-amber-700');
+        cancelButton.classList.remove('hidden');
+      } else {
+        submitButton.innerHTML = '<i class="fa-solid fa-plus"></i> 追加する';
+        submitButton.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+        submitButton.classList.add('bg-brand-600', 'hover:bg-brand-700');
+        cancelButton.classList.add('hidden');
+      }
+    }
+
+    function resetTransactionForm() {
+      editingTransactionId = null;
+      document.getElementById('tx-form').reset();
+      const today = new Date();
+      const localToday = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      document.getElementById('input-date').value = localToday;
+      updateCategoryDropdown();
+      setFormMode(false);
+    }
+
+    function beginEdit(id) {
+      const tx = store.state.transactions.find(item => item.id === id);
+      if (!tx) {
+        showToast('編集対象の明細が見つかりません。データを更新してください。', 'error');
+        return;
+      }
+      editingTransactionId = tx.id;
+      document.getElementById('input-date').value = tx.date;
+      document.getElementById('input-type').value = tx.amount < 0 ? 'EXPENSE' : 'INCOME';
+      updateCategoryDropdown();
+      document.getElementById('input-category').value = tx.category;
+      document.getElementById('input-amount').value = Math.abs(Number(tx.amount));
+      document.getElementById('input-desc').value = tx.description || '';
+      setFormMode(true);
+      document.getElementById('tx-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('input-date').focus({ preventScroll: true });
+      showToast('明細を編集モードにしました。変更後に「変更を保存」を押してください。', 'success');
+    }
+
+    function cancelEdit() {
+      resetTransactionForm();
+      showToast('編集をキャンセルしました', 'success');
+    }
+
     async function handleFormSubmit(e) {
       e.preventDefault();
       const date = document.getElementById('input-date').value;
       const type = document.getElementById('input-type').value;
       const category = document.getElementById('input-category').value;
-      const rawAmount = parseFloat(document.getElementById('input-amount').value);
-      const desc = document.getElementById('input-desc').value;
+      const rawAmount = Number(document.getElementById('input-amount').value);
+      const desc = document.getElementById('input-desc').value.trim();
 
-      if (!date || isNaN(rawAmount) || rawAmount <= 0) {
-        showToast('正しい日付と金額を入力してください', 'error');
+      if (!date || !Number.isFinite(rawAmount) || rawAmount <= 0 || !category) {
+        showToast('正しい日付、費目、金額を入力してください', 'error');
         return;
       }
 
       const finalAmount = type === 'EXPENSE' ? -Math.abs(rawAmount) : Math.abs(rawAmount);
-      const newTx = {
-        id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      const isEditing = editingTransactionId !== null;
+      const transaction = {
+        id: isEditing ? editingTransactionId : `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         date,
         category,
         description: desc,
-        amount: finalAmount,
-        createdAt: new Date().toISOString()
+        amount: finalAmount
       };
+      if (!isEditing) transaction.createdAt = new Date().toISOString();
 
-      store.setLoading(true, '明細を追加中...');
+      store.setLoading(true, isEditing ? '明細を更新中...' : '明細を追加中...');
       try {
-        const updatedData = await ApiClient.createTransaction(newTx);
+        const updatedData = isEditing
+          ? await ApiClient.updateTransaction(transaction)
+          : await ApiClient.createTransaction(transaction);
         store.setTransactions(updatedData.transactions);
-        document.getElementById('input-amount').value = '';
-        document.getElementById('input-desc').value = '';
-        showToast('明細を追加しました', 'success');
+        resetTransactionForm();
+        showToast(isEditing ? '明細を更新しました' : '明細を追加しました', 'success');
       } catch (err) {
-        showToast('追加失敗: ' + err.message, 'error');
+        showToast((isEditing ? '更新' : '追加') + '失敗: ' + err.message, 'error');
       } finally {
         store.setLoading(false);
       }
@@ -724,7 +796,8 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      const today = new Date().toISOString().substring(0, 10);
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const currentMonth = today.substring(0, 7);
 
       document.getElementById('input-date').value = today;
